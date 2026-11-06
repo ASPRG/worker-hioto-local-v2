@@ -13,8 +13,8 @@ function baseConfig(args) {
     host: getArg(args, '--host') || process.env.AMQP_HOST || '192.168.137.44',
     port: Number(getArg(args, '--port') || process.env.AMQP_PORT || '5672'),
     vhost: getArg(args, '--vhost') || process.env.AMQP_VHOST || '/',
-    user: getArg(args, '--user') || process.env.AMQP_USER || 'admin',
-    password: getArg(args, '--password') || process.env.AMQP_PASS || '123456Aa!',
+    user: getArg(args, '--user') || process.env.AMQP_USER || '',
+    password: getArg(args, '--password') || process.env.AMQP_PASS || '',
     exchange: getArg(args, '--exchange') || process.env.EXCHANGE || 'iot',
   };
 }
