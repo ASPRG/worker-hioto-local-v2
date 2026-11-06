@@ -36,6 +36,7 @@ type config struct {
 	brokerHost string // public broker address encoded in QR
 	mqttPort   int    // plaintext MQTT port encoded in QR
 	httpPort   int    // device-management HTTP API port
+	adminKey   string // shared secret for management API (Authorization: Bearer)
 }
 
 func envOr(key, def string) string {
@@ -66,6 +67,7 @@ func parseConfig() config {
 	flag.StringVar(&c.brokerHost, "broker-host", envOr("BROKER_HOST", "192.168.137.44"), "public broker address (for QR)")
 	flag.IntVar(&c.mqttPort, "mqtt-port", envIntOr("MQTT_PORT", 1883), "plaintext MQTT port (for QR)")
 	flag.IntVar(&c.httpPort, "http-port", envIntOr("HTTP_PORT", 8081), "device-management HTTP API port")
+	flag.StringVar(&c.adminKey, "admin-key", envOr("ADMIN_KEY", ""), "shared secret for management API (Authorization: Bearer)")
 	flag.Parse()
 	return c
 }
