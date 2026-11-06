@@ -85,14 +85,14 @@ func parseHiotoMessage(body []byte) (string, float64, bool) {
 	return "", 0, false
 }
 
-// handleHioto processes one message on a HIOTO topic. `devMap` is the in-memory
+// handleHioto processes one message on a HIOTO topic. `reg` is the in-memory
 // device registry (avoids a SQLite SELECT per message).
-func handleHioto(routingKey string, body []byte, st *state, db *DB, devMap map[string]Device) {
+func handleHioto(routingKey string, body []byte, st *state, db *DB, reg *deviceRegistry) {
 	guid, value, hasValue := parseHiotoMessage(body)
 	if guid == "" {
 		return
 	}
-	dev, ok := devMap[guid]
+	dev, ok := reg.Get(guid)
 	if !ok {
 		return // unknown/unregistered device — ignore
 	}
