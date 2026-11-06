@@ -163,7 +163,7 @@ func fmtSwitchVal(val float64, twoBit bool) string {
 	return strconv.Itoa(int(val))
 }
 
-func startHiotoAPI(db *DB, st *state, cfg config, publish func(string, float64), deviceMap map[string]Device) {
+func startHiotoAPI(db *DB, st *state, cfg config, publish func(string, float64), reg *deviceRegistry) {
 	port := envIntOr("HIOTO_PORT", 8000)
 
 	// Precompute which sensors are 2-channel (any rule input value 2 or 3).
@@ -227,10 +227,10 @@ func startHiotoAPI(db *DB, st *state, cfg config, publish func(string, float64),
 			for _, rd := range rows {
 				out = append(out, hiotoRule{
 					ID: rd.ID, GuidSensor: rd.InputGUID,
-					SensorName:       nameOfDevice(deviceMap, rd.InputGUID),
+					SensorName:       nameOfDevice(reg, rd.InputGUID),
 					SensorInputValue: fmtSwitchVal(rd.InputValue, twoBit[rd.InputGUID]),
 					GuidAktuator:     rd.OutputGUID,
-					AktuatorName:     nameOfDevice(deviceMap, rd.OutputGUID),
+					AktuatorName:     nameOfDevice(reg, rd.OutputGUID),
 					AktuatorOutputValue: fmtSwitchVal(rd.OutputValue, false),
 				})
 			}
@@ -269,7 +269,7 @@ func startHiotoAPI(db *DB, st *state, cfg config, publish func(string, float64),
 				}
 				hiotoJSON(rw, 200, "Success", hiotoDeviceDTO(1, d))
 			case http.MethodPut:
-				hiotoUpdateDevice(rw, r, db, guid, deviceMap)
+				hiotoUpdateDevice(rw, r, db, guid, reg)
 			case http.MethodDelete:
 				_ = db.deleteDevice(guid)
 				hiotoJSON(rw, 200, "Success", map[string]bool{"ok": true})
@@ -304,8 +304,8 @@ func startHiotoAPI(db *DB, st *state, cfg config, publish func(string, float64),
 	}()
 }
 
-func nameOfDevice(deviceMap map[string]Device, guid string) string {
-	if d, ok := deviceMap[guid]; ok && d.Name != "" {
+func nameOfDevice(reg *deviceRegistry, guid string) string {
+	if d, ok := reg.Get(guid); ok && d.Name != "" {
 		return d.Name
 	}
 	return guid
@@ -370,7 +370,7 @@ func hiotoRegisterDevice(rw http.ResponseWriter, r *http.Request, db *DB) {
 	hiotoJSON(rw, 200, "Success register device", map[string]string{"guid": dev.GUID})
 }
 
-func hiotoUpdateDevice(rw http.ResponseWriter, r *http.Request, db *DB, guid string, deviceMap map[string]Device) {
+func hiotoUpdateDevice(rw http.ResponseWriter, r *http.Request, db *DB, guid string, reg *deviceRegistry) {
 	var b struct {
 		MAC  string `json:"mac"`
 		Type string `json:"type"`
@@ -394,14 +394,14 @@ func hiotoUpdateDevice(rw http.ResponseWriter, r *http.Request, db *DB, guid str
 	cur.Category = b.Type
 	_ = db.updateDevice(cur)
 	// Keep the in-memory registry in sync so live broadcasts don't revert it.
-	if dev, ok := deviceMap[guid]; ok {
+	if dev, ok := reg.Get(guid); ok {
 		dev.Name = cur.Name
 		dev.Type = cur.Type
 		dev.MAC = cur.MAC
 		dev.Category = cur.Category
 		dev.Kind = kindOf(dev.Type)
 		dev.ValueType = valueTypeOf(dev.Type)
-		deviceMap[guid] = dev
+		reg.Set(guid, dev)
 	}
 	hiotoJSON(rw, 200, "Success Update Device", map[string]string{"guid": guid})
 }

@@ -21,7 +21,7 @@ var deviceCSVHeaders = []string{
 // startHTTP serves the device-management + rule-import API (plaintext, on the
 // local ICS network). It owns the SQLite DB via the `db` handle and reloads the
 // rule engine (`st`) when rules are imported.
-func startHTTP(db *DB, st *state, cfg config, publish func(string, float64), deviceMap map[string]Device) {
+func startHTTP(db *DB, st *state, cfg config, publish func(string, float64), reg *deviceRegistry) {
 	mux := http.NewServeMux()
 
 	send := func(rw http.ResponseWriter, code int, obj interface{}) {
@@ -185,7 +185,7 @@ func startHTTP(db *DB, st *state, cfg config, publish func(string, float64), dev
 			}
 			// Keep the in-memory registry in sync so live broadcasts don't
 			// push stale values back to the dashboard.
-			if dev, ok := deviceMap[guid]; ok {
+			if dev, ok := reg.Get(guid); ok {
 				dev.Name = merged.Name
 				dev.Type = merged.Type
 				dev.MAC = merged.MAC
@@ -201,7 +201,7 @@ func startHTTP(db *DB, st *state, cfg config, publish func(string, float64), dev
 				dev.YPosition = merged.YPosition
 				dev.Kind = kindOf(dev.Type)
 				dev.ValueType = valueTypeOf(dev.Type)
-				deviceMap[guid] = dev
+				reg.Set(guid, dev)
 			}
 			log.Printf("[update] %s", guid)
 			send(rw, 200, merged)

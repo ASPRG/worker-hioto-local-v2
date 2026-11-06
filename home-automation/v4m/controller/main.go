@@ -441,12 +441,13 @@ func main() {
 	}
 
 	st := newState()
-	// register device kinds/types from the DB + build an in-memory registry map
-	// (avoids a SQLite SELECT per message).
+	// register device kinds/types from the DB + build an in-memory registry
+	// (avoids a SQLite SELECT per message; protected by RWMutex for safe
+	// concurrent access from AMQP goroutine and HTTP handler goroutines).
 	actType := map[string]int{}
-	deviceMap := map[string]Device{}
+	reg := newRegistry(nil)
 	for _, dev := range devices {
-		deviceMap[dev.GUID] = dev
+		reg.Set(dev.GUID, dev)
 		if dev.Kind == KindActuator || dev.Kind == KindHybrid {
 			actType[dev.GUID] = numericType(dev.Type)
 			st.putActType(dev.GUID, numericType(dev.Type))
@@ -466,7 +467,7 @@ func main() {
 		// HIOTO-topic messages use a plain {guid, value, ...} payload,
 		// not the V4 envelope.
 		if isHiotoRoutingKey(d.RoutingKey) {
-			handleHioto(d.RoutingKey, d.Body, st, db, deviceMap)
+			handleHioto(d.RoutingKey, d.Body, st, db, reg)
 			return
 		}
 		parts := strings.Split(d.RoutingKey, ".")
@@ -496,7 +497,7 @@ func main() {
 
 				st.putSensor(p.SerialNumber, v)
 				kickRules()
-				recordTelemetry(p.SerialNumber, deviceMap[p.SerialNumber].Name, "value", v)
+				recordTelemetry(p.SerialNumber, reg.Name(p.SerialNumber), "value", v)
 				_ = db.touchDevice(p.SerialNumber)
 			}
 		case len(parts) == 5 && parts[1] == "actuator" && parts[4] == "state":
@@ -530,9 +531,9 @@ func main() {
 				log.Printf("[out] publish error: %v", err)
 				return
 			}
-			recordTelemetry(actuator, deviceMap[actuator].Name, "cmd", val)
+			recordTelemetry(actuator, reg.Name(actuator), "cmd", val)
 			// Devices don't publish feedback, so reflect the commanded state live.
-			if dev, ok := deviceMap[actuator]; ok {
+			if dev, ok := reg.Get(actuator); ok {
 				recordLive(actuator, dev.Kind, numericType(dev.Type), val, dev.Name, dev.Type)
 				_ = db.updateDeviceStatus(actuator, floatStr(val))
 			}
@@ -554,14 +555,14 @@ func main() {
 			log.Printf("[out] publish error: %v", err)
 			return
 		}
-		recordTelemetry(actuator, deviceMap[actuator].Name, "cmd", val)
+		recordTelemetry(actuator, reg.Name(actuator), "cmd", val)
 	}
 
 	// HIOTO-compatible REST API for the existing Android app (separate port).
-	startHiotoAPI(db, st, cfg, publish, deviceMap)
+	startHiotoAPI(db, st, cfg, publish, reg)
 
 	// Device-management API + embedded web UI (manager/dashboard) on :8081.
-	startHTTP(db, st, cfg, publish, deviceMap)
+	startHTTP(db, st, cfg, publish, reg)
 
 	// Periodic state sync: re-send each actuator's authoritative state so it
 	// stays aligned with the controller ("1 extra command" per device). Lamps
