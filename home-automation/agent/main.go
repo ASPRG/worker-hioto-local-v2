@@ -41,8 +41,8 @@ func main() {
 	flag.StringVar(&cfg.host, "broker-host", envOr("BROKER_HOST", "192.168.1.22"), "broker host/IP")
 	flag.IntVar(&cfg.port, "port", envIntOr("BROKER_PORT", 5671), "AMQP TLS port")
 	flag.StringVar(&cfg.vhost, "vhost", envOr("BROKER_VHOST", "/smarthome"), "RabbitMQ vhost")
-	flag.StringVar(&cfg.user, "user", envOr("BROKER_USER", "agent"), "RabbitMQ user")
-	flag.StringVar(&cfg.password, "password", envOr("BROKER_PASSWORD", "Agent!23"), "RabbitMQ password")
+	flag.StringVar(&cfg.user, "user", envOr("BROKER_USER", ""), "RabbitMQ user")
+	flag.StringVar(&cfg.password, "password", envOr("BROKER_PASSWORD", ""), "RabbitMQ password")
 	flag.StringVar(&cfg.ca, "ca", envOr("AGENT_CA", "ca.crt"), "CA cert PEM")
 	flag.StringVar(&cfg.cert, "cert", envOr("AGENT_CERT", "agent.crt"), "client cert PEM")
 	flag.StringVar(&cfg.key, "key", envOr("AGENT_KEY", "agent.key"), "client key PEM")
@@ -54,6 +54,12 @@ func main() {
 	flag.StringVar(&cfg.publishBody, "publish-body", "", "one-shot publish: body (e.g. \"guid#0\")")
 	flag.BoolVar(&cfg.insecure, "insecure", false, "skip TLS verification (test only)")
 	flag.Parse()
+	if cfg.user == "" {
+		log.Fatal("BROKER_USER (or -user flag) is required — refusing to start without broker credentials")
+	}
+	if cfg.password == "" {
+		log.Fatal("BROKER_PASSWORD (or -password flag) is required — refusing to start without broker credentials")
+	}
 
 	tlsCfg, err := buildTLS(cfg)
 	if err != nil {

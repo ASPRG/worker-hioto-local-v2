@@ -7,11 +7,13 @@
  *  allows changing Wi-Fi/MQTT/floor settings without reflashing.
  * ======================================================================== */
 
-/* MQTT broker defaults — the live HIOTO controller (v4m) MQTT plugin. */
+/* MQTT broker defaults — the live HIOTO controller (v4m) MQTT plugin.
+ * Credentials are provisioned per-device via the captive portal (NVS).
+ * Leaving USER/PASS empty forces provisioning on first boot. */
 #define DEFAULT_MQTT_HOST "192.168.1.22"
 #define DEFAULT_MQTT_PORT 1883
-#define DEFAULT_MQTT_USER "/smarthome:smarthome"
-#define DEFAULT_MQTT_PASS "Ssm4rt2!"
+#define DEFAULT_MQTT_USER ""
+#define DEFAULT_MQTT_PASS ""
 
 /* HIOTO controller HTTP API (device registry / names). */
 #define DEFAULT_CTRL_HOST "192.168.1.22"
@@ -26,7 +28,7 @@
 
 /* Wi-Fi provisioning access point (captive portal). */
 #define PROV_AP_SSID "HIOTO-Monitor-Setup"
-#define PROV_AP_PASS "hioto1234" /* >= 8 chars */
+#define PROV_AP_PASS "CHANGE_ME" /* >= 8 chars; set per-unit at production time */
 
 /* MQTT topic templates; {id} is replaced with the device id. */
 #define TOPIC_TELEMETRY "iot/%s/telemetry"

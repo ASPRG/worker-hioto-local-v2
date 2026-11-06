@@ -25,8 +25,8 @@ const state = {
   host: process.env.AMQP_HOST || '192.168.137.44',
   port: Number(process.env.AMQP_PORT || '5672'),
   vhost: process.env.AMQP_VHOST || '/',
-  user: process.env.AMQP_USER || 'admin',
-  password: process.env.AMQP_PASS || '123456Aa!',
+  user: process.env.AMQP_USER || '',
+  password: process.env.AMQP_PASS || '',
   exchange: process.env.EXCHANGE || 'iot',
   connected: false,
 };

@@ -44,6 +44,8 @@ func envOr(key, def string) string {
 	}
 	return def
 }
+
+
 func envIntOr(key string, def int) int {
 	if v := os.Getenv(key); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
@@ -57,8 +59,8 @@ func parseConfig() config {
 	flag.StringVar(&c.host, "host", envOr("AMQP_HOST", "127.0.0.1"), "AMQP host")
 	flag.IntVar(&c.port, "port", envIntOr("AMQP_PORT", 5672), "AMQP port (plaintext)")
 	flag.StringVar(&c.vhost, "vhost", envOr("AMQP_VHOST", "/"), "vhost")
-	flag.StringVar(&c.user, "user", envOr("AMQP_USER", "admin"), "username")
-	flag.StringVar(&c.password, "password", envOr("AMQP_PASS", "123456Aa!"), "password")
+	flag.StringVar(&c.user, "user", envOr("AMQP_USER", ""), "username")
+	flag.StringVar(&c.password, "password", envOr("AMQP_PASS", ""), "password")
 	flag.StringVar(&c.exchange, "exchange", envOr("EXCHANGE", "home.automation"), "topic exchange")
 	flag.IntVar(&c.periodMS, "period-ms", envIntOr("PERIOD_MS", 1000), "control loop cadence")
 	flag.StringVar(&c.dbPath, "db", envOr("DB_PATH", "/var/lib/homeautomation/v4m.db"), "SQLite database")
@@ -67,6 +69,12 @@ func parseConfig() config {
 	flag.IntVar(&c.mqttPort, "mqtt-port", envIntOr("MQTT_PORT", 1883), "plaintext MQTT port (for QR)")
 	flag.IntVar(&c.httpPort, "http-port", envIntOr("HTTP_PORT", 8081), "device-management HTTP API port")
 	flag.Parse()
+	if c.user == "" {
+		log.Fatal("AMQP_USER (or -user flag) is required — refusing to start without broker credentials")
+	}
+	if c.password == "" {
+		log.Fatal("AMQP_PASS (or -password flag) is required — refusing to start without broker credentials")
+	}
 	return c
 }
 
