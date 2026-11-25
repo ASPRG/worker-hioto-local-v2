@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -30,8 +31,10 @@ func startHTTP(db *DB, st *state, cfg config, publish func(string, float64), dev
 		_ = json.NewEncoder(rw).Encode(obj)
 	}
 
-	// QR payload: full HIOTO registration info + broker credentials, so a
-	// dedicated registration app can onboard the device from a single scan.
+	// QR payload: full HIOTO registration info so a dedicated registration app
+	// can onboard the device from a single scan. Broker credentials are NOT
+	// embedded here — the scanning app must obtain them through a separate
+	// authenticated channel.
 	qrPayload := func(dev Device) string {
 		b, _ := json.Marshal(map[string]interface{}{
 			"v":          1,
@@ -47,8 +50,6 @@ func startHTTP(db *DB, st *state, cfg config, publish func(string, float64), dev
 			"x_position": dev.XPosition,
 			"y_position": dev.YPosition,
 			"broker":     fmt.Sprintf("mqtt://%s:%d", cfg.brokerHost, cfg.mqttPort),
-			"user":       cfg.user,
-			"pass":       cfg.password,
 		})
 		return string(b)
 	}
@@ -113,6 +114,18 @@ func startHTTP(db *DB, st *state, cfg config, publish func(string, float64), dev
 		guid := parts[0]
 
 		if len(parts) == 2 && parts[1] == "qr.png" && r.Method == http.MethodGet {
+			if cfg.adminKey != "" {
+				authHeader := r.Header.Get("Authorization")
+				if !strings.HasPrefix(authHeader, "Bearer ") {
+					send(rw, 401, map[string]string{"error": "unauthorized"})
+					return
+				}
+				tok := strings.TrimPrefix(authHeader, "Bearer ")
+				if subtle.ConstantTimeCompare([]byte(tok), []byte(cfg.adminKey)) != 1 {
+					send(rw, 401, map[string]string{"error": "unauthorized"})
+					return
+				}
+			}
 			dev, ok := db.getDevice(guid)
 			if !ok {
 				send(rw, 404, map[string]string{"error": "device not found"})
