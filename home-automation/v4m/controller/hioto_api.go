@@ -288,7 +288,7 @@ func startHiotoAPI(db *DB, st *state, cfg config, publish func(string, float64),
 			}
 
 		case path == "/api/ws":
-			handleWS(db, publish)(rw, r)
+			handleWS(db, publish, cfg.adminKey)(rw, r)
 
 		default:
 			hiotoJSON(rw, 404, "not found", nil)

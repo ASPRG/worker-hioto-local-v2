@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,7 +14,17 @@ import (
 )
 
 var wsUpgrader = websocket.Upgrader{
-	CheckOrigin:     func(r *http.Request) bool { return true },
+	// Allow same-origin and origin-less (native / CLI) clients only.
+	// A missing Origin header is normal for non-browser clients (apps, curl).
+	// A browser from a different host must be blocked to prevent CSRF-via-WS.
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true // non-browser client
+		}
+		// Accept if origin host matches the request host.
+		return sameHost(origin, r.Host)
+	},
 	ReadBufferSize:  4096,
 	WriteBufferSize: 4096,
 }
@@ -35,8 +47,20 @@ func broadcastWS(msg []byte) {
 	}
 }
 
-func handleWS(db *DB, publish func(string, float64)) http.HandlerFunc {
+func handleWS(db *DB, publish func(string, float64), adminKey string) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
+		if adminKey != "" {
+			authHeader := r.Header.Get("Authorization")
+			if !strings.HasPrefix(authHeader, "Bearer ") {
+				http.Error(rw, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			tok := strings.TrimPrefix(authHeader, "Bearer ")
+			if tok == "" || tok != adminKey {
+				http.Error(rw, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+		}
 		conn, err := wsUpgrader.Upgrade(rw, r, nil)
 		if err != nil {
 			log.Printf("[ws] upgrade: %v", err)
@@ -90,4 +114,33 @@ func handleWS(db *DB, publish func(string, float64)) http.HandlerFunc {
 			}
 		}
 	}
+}
+
+// sameHost reports whether the given origin URL has the same host as the
+// request's Host header.  Ports are compared after stripping scheme-default
+// ports (80 for http, 443 for https) from both sides so that
+// "http://example.com:80" and r.Host "example.com:80" are treated as equal.
+func sameHost(origin, host string) bool {
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	originHost := u.Host
+	if originHost == "" {
+		return false
+	}
+	// Normalise default ports from the origin URL.
+	if u.Scheme == "http" && strings.HasSuffix(originHost, ":80") {
+		originHost = strings.TrimSuffix(originHost, ":80")
+	} else if u.Scheme == "https" && strings.HasSuffix(originHost, ":443") {
+		originHost = strings.TrimSuffix(originHost, ":443")
+	}
+	// Normalise default ports from r.Host too (r.Host may still carry :80/:443).
+	normHost := host
+	if u.Scheme == "http" && strings.HasSuffix(normHost, ":80") {
+		normHost = strings.TrimSuffix(normHost, ":80")
+	} else if u.Scheme == "https" && strings.HasSuffix(normHost, ":443") {
+		normHost = strings.TrimSuffix(normHost, ":443")
+	}
+	return strings.EqualFold(originHost, normHost)
 }
