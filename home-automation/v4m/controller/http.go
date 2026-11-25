@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -114,8 +115,13 @@ func startHTTP(db *DB, st *state, cfg config, publish func(string, float64), dev
 
 		if len(parts) == 2 && parts[1] == "qr.png" && r.Method == http.MethodGet {
 			if cfg.adminKey != "" {
-				auth := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-				if auth != cfg.adminKey {
+				authHeader := r.Header.Get("Authorization")
+				if !strings.HasPrefix(authHeader, "Bearer ") {
+					send(rw, 401, map[string]string{"error": "unauthorized"})
+					return
+				}
+				tok := strings.TrimPrefix(authHeader, "Bearer ")
+				if subtle.ConstantTimeCompare([]byte(tok), []byte(cfg.adminKey)) != 1 {
 					send(rw, 401, map[string]string{"error": "unauthorized"})
 					return
 				}
