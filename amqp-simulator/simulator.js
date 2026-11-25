@@ -29,8 +29,8 @@ Options (env var fallback in parentheses):
   --host <h>            AMQP host          (AMQP_HOST)      [default: 192.168.137.44]
   --port <p>            AMQP port          (AMQP_PORT)      [default: 5672]
   --vhost <v>           Virtual host       (AMQP_VHOST)     [default: /]
-  --user <u>            Username           (AMQP_USER)      [default: admin]
-  --password <p>        Password           (AMQP_PASS)      [default: 123456Aa!]
+  --user <u>            Username           (AMQP_USER, required)
+  --password <p>        Password           (AMQP_PASS, required)
   --exchange <name>     Topic exchange     (EXCHANGE)       [default: iot]
   --device <id>         Device ID          (DEVICE_ID)      [default: sim-001]
   --count <n>           Number of devices  (COUNT)          [default: 1]

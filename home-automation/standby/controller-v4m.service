@@ -4,9 +4,9 @@ Wants=rabbitmq-server.service
 
 [Service]
 Type=simple
+EnvironmentFile=/etc/hioto/controller.env
 ExecStart=/root/controller-v4m -period-ms 1000 -db /var/lib/homeautomation/v4m.db \
-  -http-port 8081 -broker-host 192.168.1.22 -vhost /smarthome \
-  -user smarthome -password 'Ssm4rt2!'
+  -http-port 8081 -broker-host 192.168.1.22 -vhost /smarthome
 Restart=always
 RestartSec=5
 

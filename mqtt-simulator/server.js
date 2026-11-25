@@ -22,8 +22,8 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const state = {
   broker: process.env.BROKER || 'mqtt://192.168.137.44:1883',
-  username: process.env.MQTT_USER || 'admin',
-  password: process.env.MQTT_PASS || '123456Aa!',
+  username: process.env.MQTT_USER || '',
+  password: process.env.MQTT_PASS || '',
   connected: false,
 };
 

@@ -63,8 +63,8 @@ func parseConfig() Config {
 	flag.StringVar(&c.AMQPHost, "amqp-host", envOr("AMQP_HOST", "192.168.137.44"), "AMQP broker host")
 	flag.IntVar(&c.AMQPPort, "amqp-port", envIntOr("AMQP_PORT", 5672), "AMQP broker port")
 	flag.StringVar(&c.VHost, "vhost", envOr("AMQP_VHOST", "/"), "AMQP virtual host")
-	flag.StringVar(&c.User, "user", envOr("AMQP_USER", "admin"), "broker username")
-	flag.StringVar(&c.Password, "password", envOr("AMQP_PASS", "123456Aa!"), "broker password")
+	flag.StringVar(&c.User, "user", envOr("AMQP_USER", ""), "broker username")
+	flag.StringVar(&c.Password, "password", envOr("AMQP_PASS", ""), "broker password")
 	flag.StringVar(&c.Exchange, "exchange", envOr("EXCHANGE", "iot"), "AMQP topic exchange")
 
 	flag.StringVar(&c.MQTTTelemetryTopic, "mqtt-telemetry-topic", envOr("MQTT_TELEMETRY_TOPIC", "iot/+/telemetry"), "MQTT telemetry subscription topic")
@@ -80,6 +80,12 @@ func parseConfig() Config {
 
 	flag.IntVar(&c.PeriodSeconds, "period", envIntOr("PERIOD", 10), "processing period T in seconds")
 	flag.Parse()
+	if c.User == "" {
+		log.Fatal("AMQP_USER (or -user flag) is required — refusing to start without broker credentials")
+	}
+	if c.Password == "" {
+		log.Fatal("AMQP_PASS (or -password flag) is required — refusing to start without broker credentials")
+	}
 	return c
 }
 

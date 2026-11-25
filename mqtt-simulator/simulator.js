@@ -64,8 +64,8 @@ const telemetryTpl = getArg('--telemetry') || process.env.TELEMETRY || 'iot/{id}
 const commandTpl   = getArg('--command')   || process.env.COMMAND   || 'iot/{id}/commands';
 const statusTpl    = getArg('--status')    || process.env.STATUS    || 'iot/{id}/status';
 const interval     = Math.max(0.5, parseFloat(getArg('--interval') || process.env.INTERVAL || '5'));
-const username     = getArg('--username')  || process.env.MQTT_USER || 'admin';
-const password     = getArg('--password')  || process.env.MQTT_PASS || '123456Aa!';
+const username     = getArg('--username')  || process.env.MQTT_USER || '';
+const password     = getArg('--password')  || process.env.MQTT_PASS || '';
 
 const fillTopic = (tpl, id) => tpl.replace(/\{id\}/g, id);
 
