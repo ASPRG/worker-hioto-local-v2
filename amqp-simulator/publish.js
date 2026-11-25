@@ -20,8 +20,8 @@ Options:
   --exchange <name>  topic exchange          [default: iot]
   --host <h>         [default: 192.168.137.44]
   --port <p>         [default: 5672]
-  --user <u>         [default: admin]
-  --password <p>     [default: 123456Aa!]
+  --user <u>         (AMQP_USER, required)
+  --password <p>     (AMQP_PASS, required)
 
 Example:
   node publish.js --key iot.sim-001.commands --message '{"command":"reboot"}'

@@ -28,7 +28,7 @@
 
 /* Wi-Fi provisioning access point (captive portal). */
 #define PROV_AP_SSID "HIOTO-Monitor-Setup"
-#define PROV_AP_PASS "CHANGE_ME" /* >= 8 chars; set per-unit at production time */
+#define PROV_AP_PASS "" /* set per-unit at production time (>= 8 chars) */
 
 /* MQTT topic templates; {id} is replaced with the device id. */
 #define TOPIC_TELEMETRY "iot/%s/telemetry"

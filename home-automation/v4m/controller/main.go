@@ -45,7 +45,6 @@ func envOr(key, def string) string {
 	return def
 }
 
-
 func envIntOr(key string, def int) int {
 	if v := os.Getenv(key); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {

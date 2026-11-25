@@ -4,8 +4,13 @@
 
 const BROKER = process.env.MQTT_HOST || '192.168.137.44';
 const PORT = Number(process.env.MQTT_PORT || 1883);
-const USER = process.env.MQTT_USER || 'admin';
-const PASS = process.env.MQTT_PASS || '123456Aa!';
+const USER = process.env.MQTT_USER || '';
+const PASS = process.env.MQTT_PASS || '';
+
+if (!USER || !PASS) {
+  console.error('Error: MQTT_USER and MQTT_PASS environment variables are required');
+  process.exit(1);
+}
 
 const SENSORS = ['SNS-SW-0001', 'SNS-SW-0002', 'SNS-SW-0003', 'SNS-SW-0004', 'SNS-SW-0005'];
 const ACTUATORS = ['ACT-LMP-0001', 'ACT-LMP-0002', 'ACT-LMP-0003', 'ACT-LMP-0004', 'ACT-LMP-0005'];
