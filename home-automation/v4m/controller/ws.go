@@ -50,11 +50,13 @@ func broadcastWS(msg []byte) {
 func handleWS(db *DB, publish func(string, float64), adminKey string) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if adminKey != "" {
-			tok := r.URL.Query().Get("token")
-			if tok == "" {
-				tok = strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+			authHeader := r.Header.Get("Authorization")
+			if !strings.HasPrefix(authHeader, "Bearer ") {
+				http.Error(rw, "unauthorized", http.StatusUnauthorized)
+				return
 			}
-			if tok != adminKey {
+			tok := strings.TrimPrefix(authHeader, "Bearer ")
+			if tok == "" || tok != adminKey {
 				http.Error(rw, "unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -115,7 +117,9 @@ func handleWS(db *DB, publish func(string, float64), adminKey string) http.Handl
 }
 
 // sameHost reports whether the given origin URL has the same host as the
-// request's Host header.  Ports are compared as part of the host string.
+// request's Host header.  Ports are compared after stripping scheme-default
+// ports (80 for http, 443 for https) from both sides so that
+// "http://example.com:80" and r.Host "example.com:80" are treated as equal.
 func sameHost(origin, host string) bool {
 	u, err := url.Parse(origin)
 	if err != nil {
@@ -125,11 +129,18 @@ func sameHost(origin, host string) bool {
 	if originHost == "" {
 		return false
 	}
-	// Normalise: strip default ports for http/https if the host has none.
+	// Normalise default ports from the origin URL.
 	if u.Scheme == "http" && strings.HasSuffix(originHost, ":80") {
 		originHost = strings.TrimSuffix(originHost, ":80")
 	} else if u.Scheme == "https" && strings.HasSuffix(originHost, ":443") {
 		originHost = strings.TrimSuffix(originHost, ":443")
 	}
-	return strings.EqualFold(originHost, host)
+	// Normalise default ports from r.Host too (r.Host may still carry :80/:443).
+	normHost := host
+	if u.Scheme == "http" && strings.HasSuffix(normHost, ":80") {
+		normHost = strings.TrimSuffix(normHost, ":80")
+	} else if u.Scheme == "https" && strings.HasSuffix(normHost, ":443") {
+		normHost = strings.TrimSuffix(normHost, ":443")
+	}
+	return strings.EqualFold(originHost, normHost)
 }
